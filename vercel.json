@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/payment/:path*", "destination": "/index.html" },
+    { "source": "/produkty", "destination": "/index.html" },
+    { "source": "/o-nas", "destination": "/index.html" },
+    { "source": "/regulamin", "destination": "/index.html" },
+    { "source": "/admin/:path*", "destination": "/index.html" }
+  ]
+}

@@ -1,0 +1,20 @@
+# ─── GlowMoon — routing SPA dla Apache ─────────────────────────────
+# Ten plik wrzuć na hosting obok index.html (główny katalog domeny,
+# np. public_html). Po zmianach: npm run build i wgraj zawartość dist/
+# (Vite skopiuje ten plik do dist/.htaccess automatycznie).
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Nie podmieniaj realnych plików i katalogów (assets, obrazy itd.)
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Ścieżki API (/api/*) NIE są przepisywane na index.html —
+  # dzięki temu backend (server.js) może je przechwycić.
+  RewriteCond %{REQUEST_URI} !^/api
+
+  # Każda trasa klienta (np. /produkty, /admin/dashboard) → index.html
+  RewriteRule . /index.html [L]
+</IfModule>

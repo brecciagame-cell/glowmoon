@@ -1,0 +1,13 @@
+# Zależności
+node_modules/
+
+# Pliki środowiskowe z sekretami (klucze API, hasła)
+.env
+.env.production
+.env.*.local
+
+# Lokalne dane zamówień
+data/
+
+# Logi
+*.log

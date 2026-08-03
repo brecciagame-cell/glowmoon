@@ -1,0 +1,111 @@
+.regulamin {
+  padding: 8rem 0 4rem;
+}
+
+.regulamin h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+}
+
+.rules-content {
+  background: rgba(26, 26, 37, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.rules-content section {
+  margin-bottom: 2rem;
+}
+
+.rules-content section:last-child {
+  margin-bottom: 0;
+}
+
+.rules-content h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ddddee;
+  margin-bottom: 1rem;
+}
+
+.rules-content p {
+  color: #9999aa;
+  line-height: 1.7;
+  font-size: 0.9375rem;
+}
+
+.rules-content ul {
+  color: #9999aa;
+  padding-left: 1.5rem;
+  line-height: 1.7;
+}
+
+.rules-content li {
+  margin-bottom: 0.5rem;
+}
+
+.rules-content strong {
+  color: #ddddee;
+}
+
+/* Animacje wjeżdżających sekcji */
+.rules-content section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rules-content section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger dla sekcji */
+.rules-content section:nth-child(1) { transition-delay: 0.05s; }
+.rules-content section:nth-child(2) { transition-delay: 0.1s; }
+.rules-content section:nth-child(3) { transition-delay: 0.15s; }
+.rules-content section:nth-child(4) { transition-delay: 0.2s; }
+.rules-content section:nth-child(5) { transition-delay: 0.25s; }
+.rules-content section:nth-child(6) { transition-delay: 0.3s; }
+.rules-content section:nth-child(7) { transition-delay: 0.35s; }
+.rules-content section:nth-child(8) { transition-delay: 0.4s; }
+
+.back-button-wrapper {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.back-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+}
+
+.back-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .rules-content {
+    padding: 1.5rem;
+  }
+  
+  .regulamin h1 {
+    font-size: 1.75rem;
+  }
+}
