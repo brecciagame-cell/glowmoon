@@ -47,7 +47,10 @@ function mapRow(row) {
     amount: Number(row.amount),
     currency: row.currency,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    delivered: !!row.delivered,
+    deliveredAt: row.delivered_at || undefined,
+    deliveryLog: Array.isArray(row.delivery_log) ? row.delivery_log : []
   }
 }
 
@@ -62,7 +65,10 @@ export async function insertOrder(order) {
       email: order.email || null,
       items: order.items,
       amount: order.amount,
-      currency: order.currency
+      currency: order.currency,
+      delivered: !!order.delivered,
+      delivered_at: order.deliveredAt || null,
+      delivery_log: order.deliveryLog || []
     })
     if (error) throw new Error(error.message)
     return
@@ -111,6 +117,33 @@ export async function updateOrderStatus(orderId, status) {
   }
 }
 
+// Zapisuje stan dostawy zamówienia (RCON)
+export async function updateOrderDelivery(orderId, { delivered, deliveredAt, deliveryLog }) {
+  const db = client()
+  if (db) {
+    const { error } = await db
+      .from('orders')
+      .update({
+        delivered: !!delivered,
+        delivered_at: delivered ? deliveredAt : null,
+        delivery_log: deliveryLog || [],
+        updated_at: new Date().toISOString()
+      })
+      .eq('order_id', orderId)
+    if (error) throw new Error(error.message)
+    return
+  }
+  const orders = loadOrders()
+  const order = orders.find((o) => o.orderId === orderId)
+  if (order) {
+    order.delivered = !!delivered
+    order.deliveredAt = delivered ? deliveredAt : undefined
+    order.deliveryLog = deliveryLog || []
+    order.updatedAt = new Date().toISOString()
+    saveOrders(orders)
+  }
+}
+
 // Dane zamówienia bez wewnętrznych pól (paymentId itd.)
 export function publicOrder(order) {
   if (!order) return null
@@ -122,6 +155,8 @@ export function publicOrder(order) {
     items: order.items,
     amount: order.amount,
     currency: order.currency,
-    createdAt: order.createdAt
+    createdAt: order.createdAt,
+    delivered: !!order.delivered,
+    deliveredAt: order.deliveredAt || null
   }
 }

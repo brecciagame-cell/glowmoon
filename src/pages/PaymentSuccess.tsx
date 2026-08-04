@@ -20,6 +20,8 @@ interface OrderData {
   amount: number
   currency: string
   createdAt: string
+  delivered?: boolean
+  deliveredAt?: string | null
 }
 
 const STATUS_LABELS: Record<OrderData['status'], string> = {
@@ -220,9 +222,25 @@ export default function PaymentSuccess() {
             </div>
           )}
 
+          {isPaid && order.delivered && (
+            <div className="delivery-status delivered">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Przedmioty zostały dostarczone na serwer!</span>
+            </div>
+          )}
+
+          {isPaid && !order.delivered && (
+            <div className="delivery-status pending">
+              <span className="spinner-ring small"></span>
+              <span>Dostarczamy przedmioty na serwer…</span>
+            </div>
+          )}
+
           <p className="delivery-note">
             {isPaid
-              ? <>Produkt zostanie dostarczony automatycznie na nick <strong>{order.nickname}</strong> w ciągu kilku minut od zaksięgowania płatności. Jeśli produkt nie pojawi się na serwerze, skontaktuj się z nami na Discordzie.</>
+              ? <>Produkty są nadawane automatycznie na nick <strong>{order.nickname}</strong>. Musisz być online na serwerze. Jeśli nic nie dotarło po kilku minutach, skontaktuj się z nami na Discordzie.</>
               : 'Płatność realizowana jest przez zewnętrznego operatora – CashBill. Po zaksięgowaniu płatności produkt zostanie dostarczony na Twój nick.'}
           </p>
         </div>

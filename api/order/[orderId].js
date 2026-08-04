@@ -1,5 +1,6 @@
 import { getConfig, fetchPaymentStatus, mapPaymentStatus } from '../_lib/cashbill.js'
 import { findOrderByOrderId, updateOrderStatus, publicOrder } from '../_lib/orders.js'
+import { deliverOrder } from '../_lib/delivery.js'
 import { sendJson, handleOptions } from '../_lib/http.js'
 
 export const config = { maxDuration: 30 }
@@ -39,6 +40,21 @@ export default async function handler(req, res) {
       }
     } catch (error) {
       console.error('[CashBill] Blad odswiezania statusu:', error)
+    }
+  }
+
+  // Retry dostawy: jesli platnosc zaksięgowana, a produkty jeszcze nie dostarczone (np. RCON
+  // nie dzialal w momencie notyfikacji) - proba ponowna przy kazdym odswiezeniu strony.
+  if (order.status === 'paid' && !order.delivered) {
+    try {
+      const delivery = await deliverOrder(order)
+      if (delivery.attempted) {
+        // Odswiez obiekt, zeby strona od razu pokazala status (bez czekania na kolejny poll)
+        order.delivered = delivery.ok
+        order.deliveredAt = delivery.ok ? new Date().toISOString() : null
+      }
+    } catch (error) {
+      console.error('[RCON] Blad retry dostawy:', error)
     }
   }
 

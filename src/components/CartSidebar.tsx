@@ -99,8 +99,8 @@ const handleCheckout = async (e: React.FormEvent) => {
           email: email.trim(),
           discount,
           currency: 'PLN',
-          items: cart.map(({ id, name, price, quantity, category }) => ({
-            id, name, price, quantity, category
+          items: cart.map(({ id, name, price, quantity, category, key }) => ({
+            id, name, price, quantity, category, key
           }))
         })
       })

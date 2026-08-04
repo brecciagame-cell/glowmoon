@@ -1,5 +1,6 @@
 import { getConfig, stripDiacritics, cashbillCreateSign } from './_lib/cashbill.js'
 import { insertOrder } from './_lib/orders.js'
+import { validateCartItem, isValidNickname } from './_lib/catalog.js'
 import { sendJson, handleOptions } from './_lib/http.js'
 
 export const config = { maxDuration: 30 }
@@ -26,29 +27,30 @@ export default async function handler(req, res) {
     })
   }
 
-  if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
-    return sendJson(res, 400, { error: 'Brak nicku' })
+  if (!isValidNickname(nickname)) {
+    // Nick trafia do komendy RCON - musi byc bezpieczny (3-16 znakow [A-Za-z0-9_])
+    return sendJson(res, 400, { error: 'Nick musi miec 3-16 znakow (litery, cyfry, podkreslenie) - bez spacji i znakow specjalnych' })
   }
   if (!Array.isArray(items) || items.length === 0) {
     return sendJson(res, 400, { error: 'Koszyk jest pusty' })
   }
 
-  // Kwotę liczymy po stronie serwera z cen produktów - nie ufamy kwocie z klienta
+  // Walidacja przeciwko kanonicznemu katalogowi: ceny i klucze /case trzyma serwer,
+  // klient nie ma wplywu (nie mozna kupic klucza za grosze ani wstrzyknac wlasnej komendy)
   const validatedItems = []
   let itemsTotal = 0
   for (const item of items) {
-    const name = typeof item?.name === 'string' ? item.name.trim() : ''
-    const price = Number(item?.price)
-    const quantity = Number(item?.quantity)
-    if (!name || !Number.isFinite(price) || price <= 0 || !Number.isInteger(quantity) || quantity <= 0) {
-      return sendJson(res, 400, { error: 'Nieprawidlowe produkty w koszyku' })
+    const validated = validateCartItem(item)
+    if (!validated.ok) {
+      return sendJson(res, 400, { error: validated.error })
     }
-    itemsTotal += price * quantity
+    itemsTotal += validated.price * validated.quantity
     validatedItems.push({
-      name,
-      price,
-      quantity,
-      category: typeof item?.category === 'string' ? item.category : undefined
+      name: validated.name,
+      price: validated.price,
+      quantity: validated.quantity,
+      category: typeof item?.category === 'string' ? item.category : undefined,
+      key: validated.key
     })
   }
   itemsTotal = Math.round(itemsTotal * 100) / 100

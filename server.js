@@ -39,6 +39,11 @@ app.listen(PORT, () => {
   } else {
     console.log('Zamowienia: plik data/orders.json (tryb dev - ustaw SUPABASE_URL w .env aby uzyc bazy)')
   }
+  if (process.env.RCON_HOST && process.env.RCON_PASSWORD) {
+    console.log(`RCON: ${process.env.RCON_HOST}:${process.env.RCON_PORT || 25575} (dostawa produktow /case give)`)
+  } else {
+    console.log('RCON nie skonfigurowany - dostawa przez /case wylaczona (ustaw RCON_HOST i RCON_PASSWORD w .env)')
+  }
   console.log(`CashBill: adres notyfikacji do ustawienia w panelu: ${process.env.CASHBILL_NOTIFY_URL || `http://localhost:${PORT}/api/cashbill/notify`}`)
   console.log(`CashBill: adresy powrotu: ${cfg.publicUrl}/payment/success ... i .../payment/failure`)
 })

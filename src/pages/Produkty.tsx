@@ -12,6 +12,8 @@ interface Product {
   badge?: string
   image: string
   category: 'keys' | 'ranks' | 'support'
+  /** Nazwa klucza w pluginie /case (dostawa przez RCON). Bez tego produkt nie jest nadawany. */
+  key?: string
 }
 
 const products: Product[] = [
@@ -21,7 +23,8 @@ const products: Product[] = [
     price: 1.99,
     description: 'Dostęp do skrzynki rzadkiej',
     image: '/keys.jpg',
-    category: 'keys'
+    category: 'keys',
+    key: 'Rzadka'
   },
   {
     id: 'key-epic',
@@ -29,7 +32,8 @@ const products: Product[] = [
     price: 3.99,
     description: 'Dostęp do skrzynki epickiej',
     image: '/keys.jpg',
-    category: 'keys'
+    category: 'keys',
+    key: 'Epicka'
   },
   {
     id: 'key-legendary',
@@ -38,7 +42,8 @@ const products: Product[] = [
     description: 'Dostęp do skrzynki legendarnej',
     badge: 'HIT',
     image: '/keys.jpg',
-    category: 'keys'
+    category: 'keys',
+    key: 'Legendarna'
   },
   {
     id: 'key-survival',
@@ -46,7 +51,8 @@ const products: Product[] = [
     price: 10.99,
     description: 'Specjalne itemy survivalowe',
     image: '/keys.jpg',
-    category: 'keys'
+    category: 'keys',
+    key: 'Survival'
   },
   {
     id: 'rank-vip',
@@ -93,12 +99,12 @@ export default function Produkty() {
   const handleAddToCart = (product: Product) => {
     const qty = quantities[product.id] || 1
     for (let i = 0; i < qty; i++) {
-      addToCart({ name: product.name, price: product.price, category: product.category })
+      addToCart({ name: product.name, price: product.price, category: product.category, key: product.key })
     }
   }
 
   const handleSupportAdd = () => {
-    // Add custom support amount - we'll add it as a single item with that price
+    // Add custom support amount - we'll add it as a single item with that price (bez klucza /case)
     if (supportAmount >= 0.99) {
       addToCart({ name: `Wsparcie Serwera (${supportAmount.toFixed(2)} zł)`, price: supportAmount, category: 'support' })
     }

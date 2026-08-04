@@ -1,5 +1,6 @@
 import { getConfig, fetchPaymentStatus, mapPaymentStatus, verifyNotifySignature } from '../_lib/cashbill.js'
 import { findOrderByPaymentId, updateOrderStatus } from '../_lib/orders.js'
+import { deliverOrder } from '../_lib/delivery.js'
 import { sendOk } from '../_lib/http.js'
 
 export const config = { maxDuration: 30 }
@@ -41,7 +42,13 @@ export default async function handler(req, res) {
     const status = mapPaymentStatus(payment?.status)
     if (status !== order.status) {
       await updateOrderStatus(order.orderId, status)
+      order.status = status
       console.log(`[CashBill] Zamowienie ${order.orderId}: ${status}`)
+    }
+
+    // Płatność zaksięgowana -> dostarczamy produkty przez RCON (komenda /case give)
+    if (status === 'paid' && !order.delivered) {
+      await deliverOrder(order)
     }
   } catch (error) {
     console.error('[CashBill] Blad przy odczycie statusu platnosci:', error)

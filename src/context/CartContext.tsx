@@ -6,6 +6,8 @@ interface CartItem {
   price: number
   quantity: number
   category?: string
+  /** Nazwa klucza w pluginie /case - dostawa przez RCON */
+  key?: string
 }
 
 interface CartContextType {
