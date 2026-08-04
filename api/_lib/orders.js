@@ -18,6 +18,11 @@ function client() {
   return _client
 }
 
+// Wspolny dostep do klienta Supabase (uzywany tez przez kolejke dostaw)
+export function getDb() {
+  return client()
+}
+
 // --- fallback plikowy (dev) ---
 function loadOrders() {
   try {
@@ -50,7 +55,8 @@ function mapRow(row) {
     updatedAt: row.updated_at,
     delivered: !!row.delivered,
     deliveredAt: row.delivered_at || undefined,
-    deliveryLog: Array.isArray(row.delivery_log) ? row.delivery_log : []
+    deliveryLog: Array.isArray(row.delivery_log) ? row.delivery_log : [],
+    deliveryError: !!row.delivery_error
   }
 }
 
@@ -68,7 +74,8 @@ export async function insertOrder(order) {
       currency: order.currency,
       delivered: !!order.delivered,
       delivered_at: order.deliveredAt || null,
-      delivery_log: order.deliveryLog || []
+      delivery_log: order.deliveryLog || [],
+      delivery_error: !!order.deliveryError
     })
     if (error) throw new Error(error.message)
     return
@@ -117,8 +124,8 @@ export async function updateOrderStatus(orderId, status) {
   }
 }
 
-// Zapisuje stan dostawy zamówienia (RCON)
-export async function updateOrderDelivery(orderId, { delivered, deliveredAt, deliveryLog }) {
+// Zapisuje stan dostawy zamówienia (kolejka/plugin)
+export async function updateOrderDelivery(orderId, { delivered, deliveredAt, deliveryLog, deliveryError }) {
   const db = client()
   if (db) {
     const { error } = await db
@@ -127,6 +134,7 @@ export async function updateOrderDelivery(orderId, { delivered, deliveredAt, del
         delivered: !!delivered,
         delivered_at: delivered ? deliveredAt : null,
         delivery_log: deliveryLog || [],
+        delivery_error: !!deliveryError,
         updated_at: new Date().toISOString()
       })
       .eq('order_id', orderId)
@@ -139,6 +147,7 @@ export async function updateOrderDelivery(orderId, { delivered, deliveredAt, del
     order.delivered = !!delivered
     order.deliveredAt = delivered ? deliveredAt : undefined
     order.deliveryLog = deliveryLog || []
+    order.deliveryError = !!deliveryError
     order.updatedAt = new Date().toISOString()
     saveOrders(orders)
   }
@@ -157,6 +166,8 @@ export function publicOrder(order) {
     currency: order.currency,
     createdAt: order.createdAt,
     delivered: !!order.delivered,
-    deliveredAt: order.deliveredAt || null
+    deliveredAt: order.deliveredAt || null,
+    deliveryError: !!order.deliveryError,
+    deliveryLog: Array.isArray(order.deliveryLog) ? order.deliveryLog : []
   }
 }

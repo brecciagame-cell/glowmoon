@@ -43,18 +43,14 @@ export default async function handler(req, res) {
     }
   }
 
-  // Retry dostawy: jesli platnosc zaksięgowana, a produkty jeszcze nie dostarczone (np. RCON
-  // nie dzialal w momencie notyfikacji) - proba ponowna przy kazdym odswiezeniu strony.
+  // Retry dostawy: jesli platnosc zaksięgowana, a produkty jeszcze nie dostarczone -
+  // ponownie odkładamy komendy do kolejki (idempotentne). Stan 'delivered' ustawia plugin
+  // potwierdzajac wykonanie przez /api/delivery/ack - strona sukcesu pokaze to przy pollingu.
   if (order.status === 'paid' && !order.delivered) {
     try {
-      const delivery = await deliverOrder(order)
-      if (delivery.attempted) {
-        // Odswiez obiekt, zeby strona od razu pokazala status (bez czekania na kolejny poll)
-        order.delivered = delivery.ok
-        order.deliveredAt = delivery.ok ? new Date().toISOString() : null
-      }
+      await deliverOrder(order)
     } catch (error) {
-      console.error('[RCON] Blad retry dostawy:', error)
+      console.error('[delivery] Blad ponownego zakolejkowania:', error)
     }
   }
 

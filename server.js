@@ -6,6 +6,8 @@ import createPaymentHandler from './api/create-payment.js'
 import notifyHandler from './api/cashbill/notify.js'
 import orderHandler from './api/order/[orderId].js'
 import send2faHandler from './api/send-2fa-code.js'
+import deliveryPollHandler from './api/delivery/poll.js'
+import deliveryAckHandler from './api/delivery/ack.js'
 
 dotenv.config()
 
@@ -19,6 +21,8 @@ app.all('/api/create-payment', createPaymentHandler)
 app.all('/api/cashbill/notify', notifyHandler)
 app.get('/api/order/:orderId', orderHandler)
 app.post('/api/send-2fa-code', send2faHandler)
+app.get('/api/delivery/poll', deliveryPollHandler)
+app.post('/api/delivery/ack', deliveryAckHandler)
 
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'API dziala!' })
@@ -39,11 +43,13 @@ app.listen(PORT, () => {
   } else {
     console.log('Zamowienia: plik data/orders.json (tryb dev - ustaw SUPABASE_URL w .env aby uzyc bazy)')
   }
-  if (process.env.RCON_HOST && process.env.RCON_PASSWORD) {
-    console.log(`RCON: ${process.env.RCON_HOST}:${process.env.RCON_PORT || 25575} (dostawa produktow /case give)`)
+  if (process.env.DELIVERY_TOKEN) {
+    console.log('Dostawa: tryb pull (plugin GlowMoonDelivery odpytuje /api/delivery/poll co kilka sekund)')
   } else {
-    console.log('RCON nie skonfigurowany - dostawa przez /case wylaczona (ustaw RCON_HOST i RCON_PASSWORD w .env)')
+    console.log('Dostawa: BRAK DELIVERY_TOKEN - ustaw go w .env (plugin nie bedzie mogl pobrac komend)')
   }
+  console.log('Dostawa: GET  /api/delivery/poll?token=... (plugin pobiera komendy)')
+  console.log('Dostawa: POST /api/delivery/ack (plugin potwierdza wykonanie)')
   console.log(`CashBill: adres notyfikacji do ustawienia w panelu: ${process.env.CASHBILL_NOTIFY_URL || `http://localhost:${PORT}/api/cashbill/notify`}`)
   console.log(`CashBill: adresy powrotu: ${cfg.publicUrl}/payment/success ... i .../payment/failure`)
 })

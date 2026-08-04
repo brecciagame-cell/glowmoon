@@ -1,0 +1,7 @@
+name: GlowMoonDelivery
+version: 1.0.0
+main: pl.glowmoon.delivery.GlowMoonDeliveryPlugin
+api-version: 1.13
+author: glowmoon.pl
+description: Odpytuje bramke platnosci (tryb pull) i wykonuje komendy /case give na serwerze.
+website: https://glowmoon.pl

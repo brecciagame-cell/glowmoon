@@ -11,6 +11,15 @@ interface OrderItem {
   category?: string
 }
 
+interface DeliveryLogEntry {
+  command: string
+  itemName: string
+  ok: boolean
+  error?: string | null
+  status?: string
+  at?: string
+}
+
 interface OrderData {
   orderId: string
   status: 'pending' | 'paid' | 'cancelled'
@@ -22,6 +31,8 @@ interface OrderData {
   createdAt: string
   delivered?: boolean
   deliveredAt?: string | null
+  deliveryError?: boolean
+  deliveryLog?: DeliveryLogEntry[]
 }
 
 const STATUS_LABELS: Record<OrderData['status'], string> = {
@@ -231,7 +242,16 @@ export default function PaymentSuccess() {
             </div>
           )}
 
-          {isPaid && !order.delivered && (
+          {isPaid && !order.delivered && order.deliveryError && (
+            <div className="delivery-status failed">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" />
+              </svg>
+              <span>Nie udało się dostarczyć przedmiotów — napisz do nas na Discordzie!</span>
+            </div>
+          )}
+
+          {isPaid && !order.delivered && !order.deliveryError && (
             <div className="delivery-status pending">
               <span className="spinner-ring small"></span>
               <span>Dostarczamy przedmioty na serwer…</span>

@@ -287,6 +287,12 @@
   color: #a5b4fc;
 }
 
+.delivery-status.failed {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
 .delivery-note {
   margin-top: 18px;
   padding: 14px 16px;

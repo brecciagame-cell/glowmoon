@@ -1,0 +1,19 @@
+# GlowMoonDelivery - dostawa produktow z bramki platnosci (tryb pull).
+# Plugin co poll-interval-seconds odpytuje backend o komendy do wykonania
+# (np. `case give <nick> <klucz> <ilosc>`) i wykonuje je z konsoli serwera.
+
+# Adres backendu (Vercel) - bez ukoncznika "/"
+api-url: "https://glowmoon-kgj7.vercel.app"
+
+# Sekret - MUSI byc TAKI SAM jak DELIVERY_TOKEN w zmiennych srodowiskowych Vercel!
+# Wazne: po pierwszym starcie zmien ten token na wlasny i zaktualizuj go tez w Vercel.
+token: "bf5fa3fb2d6755601a75ab7678b986b4f01973ae95f09236"
+
+# Jak czesto odpytwac backend (sekundy). Min 2.
+poll-interval-seconds: 5
+
+# Timeout polaczenia HTTP (ms)
+timeout-ms: 8000
+
+# Logowac udane komendy w konsoli serwera
+log-successes: true
