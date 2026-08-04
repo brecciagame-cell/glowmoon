@@ -1,6 +1,7 @@
 import { getConfig, stripDiacritics, cashbillCreateSign } from './_lib/cashbill.js'
 import { insertOrder } from './_lib/orders.js'
 import { validateCartItem, isValidNickname } from './_lib/catalog.js'
+import { validateCoupon } from './_lib/coupons.js'
 import { sendJson, handleOptions } from './_lib/http.js'
 
 export const config = { maxDuration: 30 }
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
     return sendJson(res, 405, { error: 'Method not allowed' })
   }
 
-  const { nickname, email, items, discount } = req.body || {}
+  const { nickname, email, items, couponCode } = req.body || {}
   const cfg = getConfig()
 
   if (!cfg.shopId || !cfg.secretKey) {
@@ -58,8 +59,24 @@ export default async function handler(req, res) {
     return sendJson(res, 400, { error: 'Nieprawidlowa kwota' })
   }
 
-  // Jedyne aktualnie znane kody rabatowe (10% za kod "test") - walidacja po stronie serwera
-  const validatedDiscount = Number(discount) === 0.1 ? 0.1 : 0
+  // Walidacja kuponu rabatowego po stronie serwera (kody trzymamy w bazie,
+  // a licznik uzyc liczony jest z oplaconych zamowien - klient nie ma wplywu na rabat)
+  let validatedDiscount = 0
+  let appliedCouponCode = null
+  if (typeof couponCode === 'string' && couponCode.trim()) {
+    let couponResult
+    try {
+      couponResult = await validateCoupon(couponCode)
+    } catch (error) {
+      console.error('[coupons] Blad walidacji kuponu przy platnosci:', error)
+      return sendJson(res, 500, { error: 'Blad serwera podczas walidacji kuponu' })
+    }
+    if (!couponResult.ok) {
+      return sendJson(res, 400, { error: couponResult.message })
+    }
+    validatedDiscount = couponResult.discount
+    appliedCouponCode = couponResult.coupon.code
+  }
   const amountNumber = Math.round(itemsTotal * (1 - validatedDiscount) * 100) / 100
 
   const orderId = 'GM-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 7).toUpperCase()
@@ -122,6 +139,7 @@ export default async function handler(req, res) {
       items: validatedItems,
       amount: Number(amountValue),
       currency,
+      couponCode: appliedCouponCode,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })

@@ -42,6 +42,8 @@ public final class GlowMoonDeliveryPlugin extends JavaPlugin {
   private int pollIntervalSec;
   private int timeoutMs;
   private boolean logSuccesses;
+  private boolean debug;
+  private long lastPollWarn;
 
   // id komend juz wykonanych (LinkedHashSet = kolejnosc wstawiania, do FIFO)
   private final Set<String> executedIds = new LinkedHashSet<>();
@@ -56,6 +58,7 @@ public final class GlowMoonDeliveryPlugin extends JavaPlugin {
     pollIntervalSec = Math.max(2, getConfig().getInt("poll-interval-seconds", 5));
     timeoutMs = Math.max(1000, getConfig().getInt("timeout-ms", 8000));
     logSuccesses = getConfig().getBoolean("log-successes", true);
+    debug = getConfig().getBoolean("debug", false);
 
     if (apiUrl.isEmpty() || token.isEmpty()) {
       getLogger().severe("Brak api-url lub token w config.yml! Uzupelnij plik i przeladuj serwer.");
@@ -84,7 +87,19 @@ public final class GlowMoonDeliveryPlugin extends JavaPlugin {
       getLogger().warning("Blad poll (" + e.getMessage() + ") - sprobuje za " + pollIntervalSec + " s");
       return;
     }
-    if (commands == null || commands.isEmpty()) {
+    if (commands == null) {
+      // poll zwrocil nie-200 (np. 401 - zly token). Logujemy maks. raz na minute, zeby nie zalac logu.
+      long now = System.currentTimeMillis();
+      if (now - lastPollWarn > 60_000) {
+        lastPollWarn = now;
+        getLogger().warning("Poll zwrocil blad (prawdopodobnie 401) - sprawdz czy token w config.yml = DELIVERY_TOKEN w Vercel");
+      }
+      return;
+    }
+    if (commands.isEmpty()) {
+      if (debug) {
+        getLogger().info("Poll OK - brak komend do wykonania");
+      }
       return;
     }
 

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, NavLink, useLocation } from 'react-router-dom'
+import { API_BASE } from '../config'
 import './Admin.css'
 
 // Wysylka kodu 2FA przez EmailJS — bez backendu, dziala na kazdym hostingu.
@@ -10,89 +11,315 @@ const EMAILJS_PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || ''
 // Adres, na ktory trafia kod 2FA — ustaw przez VITE_ADMIN_EMAIL w .env / .env.production
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'farencjuszek@gmail.com'
 
+// Token dostepu do API admina — MUSI byc TAKI SAM jak ADMIN_API_TOKEN w Vercel.
+const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_API_TOKEN || ''
+
+async function adminFetch(path: string, options: RequestInit = {}) {
+  const headers: Record<string, string> = {
+    ...((options.headers as Record<string, string> | undefined) || {})
+  }
+  headers['Content-Type'] = 'application/json'
+  if (ADMIN_TOKEN) headers['Authorization'] = `Bearer ${ADMIN_TOKEN}`
+  return fetch(`${API_BASE}${path}`, { ...options, headers })
+}
+
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
+function formatPrice(value: number) {
+  return value.toFixed(2).replace('.', ',')
+}
+
+function formatFullDate(iso: string | null) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function timeAgo(iso: string | null, nowTs: number) {
+  if (!iso) return '—'
+  const diffMin = Math.floor((nowTs - new Date(iso).getTime()) / 60000)
+  if (diffMin < 1) return 'przed chwilą'
+  if (diffMin < 60) return `${diffMin} min temu`
+  if (diffMin < 1440) return `${Math.floor(diffMin / 60)} godz temu`
+  return formatFullDate(iso)
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Oczekuje',
+  paid: 'Opłacone',
+  cancelled: 'Anulowane'
+}
+
+interface RecentSale {
+  orderId: string
+  nickname: string
+  items: string
+  amount: number
+  currency: string
+  status: string
+  delivered: boolean
+  deliveryError: boolean
+  couponCode: string | null
+  createdAt: string | null
+}
+
+interface DashboardData {
+  stats: {
+    ordersToday: number
+    revenueToday: number
+    totalOrders: number
+    totalRevenue: number
+  }
+  recent: RecentSale[]
+  nowTs: number
+}
+
 function DashboardContent() {
-  const recentSales = [
-    { id: '#1084', product: 'SVIP', buyer: 'KacperX', amount: '25,99 zl', time: '2 min temu' },
-    { id: '#1083', product: 'VIP', buyer: 'NoNamePL', amount: '15,99 zl', time: '11 min temu' },
-    { id: '#1082', product: 'Klucz epicki x3', buyer: 'MoonCat', amount: '11,97 zl', time: '27 min temu' },
-    { id: '#1081', product: 'Wsparcie serwera', buyer: 'Karolix', amount: '20,00 zl', time: '42 min temu' }
-  ]
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    if (!ADMIN_TOKEN) {
+      setNotice('Brak VITE_ADMIN_API_TOKEN w buildzie — panel pokazuje dane demo. Dodaj token do .env.production i przebuduj.')
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const res = await adminFetch('/api/admin/stats')
+      if (res.status === 401) {
+        setError('Nieautoryzowany dostęp. Sprawdź ADMIN_API_TOKEN na Vercel i VITE_ADMIN_API_TOKEN w buildzie.')
+      } else if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || `Błąd serwera (HTTP ${res.status})`)
+      } else {
+        setData(await res.json())
+      }
+    } catch {
+      setError('Błąd połączenia z API admina')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const stats = data?.stats
 
   return (
     <div>
       <h2>Dashboard</h2>
+
+      {notice && <div className="admin-notice">{notice}</div>}
+      {error && <div className="admin-error">{error}</div>}
+      {!ADMIN_TOKEN && !data && <button className="admin-btn" onClick={load}>Spróbuj ponownie</button>}
+
+      {loading && data === null && <div className="admin-loading">Ładowanie danych…</div>}
+
       <div className="stats-grid">
         <div className="stat-card">
-          <span>1,247</span>
-          <label>Uzytkownicy</label>
+          <span>{stats ? stats.ordersToday : '—'}</span>
+          <label>Zamówienia dziś</label>
         </div>
         <div className="stat-card">
-          <span>89</span>
-          <label>Zamowienia dzis</label>
+          <span>{stats ? `${formatPrice(stats.revenueToday)} zł` : '—'}</span>
+          <label>Przychód dziś</label>
         </div>
         <div className="stat-card">
-          <span>3,456 zl</span>
-          <label>Przychod dzis</label>
+          <span>{stats ? stats.totalOrders : '—'}</span>
+          <label>Zamówienia łącznie</label>
+        </div>
+        <div className="stat-card">
+          <span>{stats ? `${formatPrice(stats.totalRevenue)} zł` : '—'}</span>
+          <label>Przychód łącznie</label>
         </div>
       </div>
 
       <div className="panel-card">
         <h3>Ostatnio sprzedane</h3>
-        <div className="sales-list">
-          {recentSales.map((sale) => (
-            <div key={sale.id} className="sale-row">
-              <div>
-                <strong>{sale.product}</strong>
-                <p>{sale.id} - {sale.buyer}</p>
-              </div>
-              <div className="sale-meta">
-                <strong>{sale.amount}</strong>
-                <p>{sale.time}</p>
-              </div>
+        {loading && data === null && <div className="admin-loading">Ładowanie…</div>}
+        {data && data.recent.length === 0 && <p>Brak zamówień.</p>}
+        {data && data.recent.length > 0 && (
+          <>
+            <div className="sales-head">
+              <span>Produkt / zamówienie</span>
+              <span className="right">Wartość</span>
+              <span className="right">Czas</span>
+              <span className="right">Status</span>
             </div>
-          ))}
-        </div>
+            <div className="sales-list">
+              {data.recent.map((sale) => (
+                <div key={sale.orderId} className="sale-row">
+                  <div className="sale-product">
+                    <strong>{sale.items}</strong>
+                    <p>
+                      {sale.orderId} · {sale.nickname}
+                      {sale.couponCode && <em className="sale-coupon"> kupon {sale.couponCode}</em>}
+                    </p>
+                  </div>
+                  <div className="sale-value">
+                    <strong>{formatPrice(sale.amount)} zł</strong>
+                    <p>{sale.currency}</p>
+                  </div>
+                  <div className="sale-time">
+                    <strong>{timeAgo(sale.createdAt, data.nowTs)}</strong>
+                    <p>{formatFullDate(sale.createdAt)}</p>
+                  </div>
+                  <div className="sale-status">
+                    <span
+                      className={`status-pill ${sale.status}${sale.status === 'paid' && sale.delivered ? ' delivered' : ''}${
+                        sale.status === 'paid' && sale.deliveryError ? ' failed' : ''
+                      }`}
+                    >
+                      {sale.status === 'paid' && sale.delivered
+                        ? 'Dostarczone'
+                        : STATUS_LABELS[sale.status] || sale.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
 }
 
+interface Coupon {
+  id: number
+  code: string
+  discount: number
+  maxUses: number | null
+  active: boolean
+  usesCount: number
+  createdAt: string
+}
+
 function KuponyContent() {
-  const [coupons, setCoupons] = useState([
-    { id: 1, code: 'WELCOME10', discount: 10, usesLeft: 34, active: true },
-    { id: 2, code: 'SVIP20', discount: 20, usesLeft: 8, active: true }
-  ])
+  const [coupons, setCoupons] = useState<Coupon[] | null>(null)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [newCode, setNewCode] = useState('')
   const [newDiscount, setNewDiscount] = useState('10')
-  const [newUses, setNewUses] = useState('10')
+  const [newUses, setNewUses] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  const addCoupon = () => {
-    if (!newCode.trim()) return
-    const coupon = {
-      id: Date.now(),
-      code: newCode.trim().toUpperCase(),
-      discount: Number(newDiscount) || 0,
-      usesLeft: Number(newUses) || 0,
-      active: true
+  const load = useCallback(async () => {
+    if (!ADMIN_TOKEN) {
+      setNotice('Brak VITE_ADMIN_API_TOKEN w buildzie. Dodaj token do .env.production, aby zarządzać kuponami.')
+      return
     }
-    setCoupons((prev) => [coupon, ...prev])
-    setNewCode('')
-    setNewDiscount('10')
-    setNewUses('10')
+    setError('')
+    try {
+      const res = await adminFetch('/api/admin/coupons')
+      if (res.status === 401) {
+        setError('Nieautoryzowany dostęp. Sprawdź ADMIN_API_TOKEN na Vercel i VITE_ADMIN_API_TOKEN w buildzie.')
+      } else if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || `Błąd serwera (HTTP ${res.status})`)
+      } else {
+        const data = await res.json()
+        setCoupons(data.coupons || [])
+      }
+    } catch {
+      setError('Błąd połączenia z API admina')
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const addCoupon = async () => {
+    if (!newCode.trim()) return
+    setSaving(true)
+    setError('')
+    try {
+      const res = await adminFetch('/api/admin/coupons', {
+        method: 'POST',
+        body: JSON.stringify({
+          code: newCode.trim(),
+          discount: Number(newDiscount) || 0,
+          maxUses: newUses.trim() === '' ? null : Number(newUses)
+        })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error || 'Nie udało się dodać kuponu')
+      } else {
+        setCoupons(data.coupons || [])
+        setNewCode('')
+        setNewDiscount('10')
+        setNewUses('')
+      }
+    } catch {
+      setError('Błąd połączenia z API admina')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const removeCoupon = (id: number) => {
-    setCoupons((prev) => prev.filter((c) => c.id !== id))
+  const saveCoupon = async (coupon: Coupon) => {
+    setSaving(true)
+    setError('')
+    try {
+      const res = await adminFetch(`/api/admin/coupons/${coupon.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          code: coupon.code,
+          discount: coupon.discount,
+          maxUses: coupon.maxUses,
+          active: coupon.active
+        })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error || 'Nie udało się zapisać kuponu')
+      } else {
+        setEditingId(null)
+        await load()
+      }
+    } catch {
+      setError('Błąd połączenia z API admina')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const updateCoupon = (id: number, field: 'code' | 'discount' | 'usesLeft' | 'active', value: string | number | boolean) => {
+  const removeCoupon = async (id: number) => {
+    if (!window.confirm('Na pewno usunąć ten kupon?')) return
+    setError('')
+    try {
+      const res = await adminFetch(`/api/admin/coupons/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || 'Nie udało się usunąć kuponu')
+      } else {
+        setCoupons((prev) => (prev ? prev.filter((c) => c.id !== id) : prev))
+        setEditingId(null)
+      }
+    } catch {
+      setError('Błąd połączenia z API admina')
+    }
+  }
+
+  const updateCoupon = (id: number, field: 'code' | 'discount' | 'maxUses' | 'active', value: string | number | boolean | null) => {
     setCoupons((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+      prev ? prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)) : prev
     )
   }
 
@@ -100,7 +327,10 @@ function KuponyContent() {
     <div>
       <h2>Kupony</h2>
       <div className="panel-card">
-        <p>Dodawaj, edytuj i usuwaj kupony rabatowe.</p>
+        <p>Dodawaj, edytuj i usuwaj kupony rabatowe. Liczba użyć rośnie automatycznie po każdym opłaconym zamówieniu.</p>
+
+        {notice && <div className="admin-notice">{notice}</div>}
+        {error && <div className="admin-error">{error}</div>}
 
         <div className="admin-form-row">
           <input
@@ -116,6 +346,8 @@ function KuponyContent() {
             max={100}
             value={newDiscount}
             onChange={(e) => setNewDiscount(e.target.value)}
+            title="Rabat w %"
+            placeholder="Rabat %"
           />
           <input
             className="admin-input small"
@@ -123,13 +355,24 @@ function KuponyContent() {
             min={0}
             value={newUses}
             onChange={(e) => setNewUses(e.target.value)}
+            title="Limit użyć (puste = bez limitu)"
+            placeholder="Limit użyć"
           />
-          <button className="admin-btn" onClick={addCoupon}>Dodaj</button>
+          <button className="admin-btn" onClick={addCoupon} disabled={saving}>
+            {saving ? 'Zapisywanie…' : 'Dodaj'}
+          </button>
+        </div>
+
+        <div className="coupon-legend">
+          <span><strong>Rabat</strong> — % obniżki</span>
+          <span><strong>Użycia</strong> — ile razy wykorzystano / limit</span>
         </div>
 
         <div className="admin-list">
-          {coupons.map((coupon) => (
-            <div key={coupon.id} className="admin-item">
+          {coupons === null && <div className="admin-loading">Ładowanie kuponów…</div>}
+          {coupons !== null && coupons.length === 0 && <p>Brak kuponów. Dodaj pierwszy powyżej.</p>}
+          {coupons?.map((coupon) => (
+            <div key={coupon.id} className="admin-item coupon">
               <input
                 className="admin-input"
                 disabled={editingId !== coupon.id}
@@ -143,13 +386,23 @@ function KuponyContent() {
                 value={coupon.discount}
                 onChange={(e) => updateCoupon(coupon.id, 'discount', Number(e.target.value))}
               />
-              <input
-                className="admin-input small"
-                disabled={editingId !== coupon.id}
-                type="number"
-                value={coupon.usesLeft}
-                onChange={(e) => updateCoupon(coupon.id, 'usesLeft', Number(e.target.value))}
-              />
+              <span className={`coupon-uses${editingId === coupon.id ? ' editing' : ''}`}>
+                {editingId === coupon.id ? (
+                  <input
+                    className="admin-input small"
+                    type="number"
+                    min={0}
+                    value={coupon.maxUses ?? ''}
+                    placeholder="∞"
+                    onChange={(e) => updateCoupon(coupon.id, 'maxUses', e.target.value === '' ? null : Number(e.target.value))}
+                  />
+                ) : (
+                  <>
+                    <strong>{coupon.usesCount}</strong>
+                    {coupon.maxUses != null ? ` / ${coupon.maxUses}` : ' / ∞'}
+                  </>
+                )}
+              </span>
               <label className="admin-check">
                 <input
                   type="checkbox"
@@ -159,12 +412,19 @@ function KuponyContent() {
                 />
                 Aktywny
               </label>
-              {editingId === coupon.id ? (
-                <button className="admin-btn ghost" onClick={() => setEditingId(null)}>Zapisz</button>
-              ) : (
-                <button className="admin-btn ghost" onClick={() => setEditingId(coupon.id)}>Edytuj</button>
-              )}
-              <button className="admin-btn danger" onClick={() => removeCoupon(coupon.id)}>Usun</button>
+              <div className="admin-actions">
+                {editingId === coupon.id ? (
+                  <>
+                    <button className="admin-btn" onClick={() => saveCoupon(coupon)} disabled={saving}>
+                      Zapisz
+                    </button>
+                    <button className="admin-btn ghost" onClick={() => { setEditingId(null); load() }}>Anuluj</button>
+                  </>
+                ) : (
+                  <button className="admin-btn ghost" onClick={() => setEditingId(coupon.id)}>Edytuj</button>
+                )}
+                <button className="admin-btn danger" onClick={() => removeCoupon(coupon.id)} disabled={saving}>Usuń</button>
+              </div>
             </div>
           ))}
         </div>
@@ -173,17 +433,113 @@ function KuponyContent() {
   )
 }
 
+interface AdminOrder {
+  orderId: string
+  status: string
+  nickname: string
+  email: string | null
+  items: Array<{ name: string; quantity: number; price: number }>
+  amount: number
+  currency: string
+  couponCode: string | null
+  delivered: boolean
+  deliveryError: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 function ZamowieniaContent() {
+  const [orders, setOrders] = useState<AdminOrder[] | null>(null)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const load = useCallback(async () => {
+    if (!ADMIN_TOKEN) {
+      setNotice('Brak VITE_ADMIN_API_TOKEN w buildzie. Dodaj token do .env.production, aby zobaczyć zamówienia.')
+      return
+    }
+    setError('')
+    try {
+      const res = await adminFetch('/api/admin/orders')
+      if (res.status === 401) {
+        setError('Nieautoryzowany dostęp. Sprawdź ADMIN_API_TOKEN na Vercel i VITE_ADMIN_API_TOKEN w buildzie.')
+      } else if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || `Błąd serwera (HTTP ${res.status})`)
+      } else {
+        const data = await res.json()
+        setOrders(data.orders || [])
+      }
+    } catch {
+      setError('Błąd połączenia z API admina')
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
   return (
     <div>
-      <h2>Zamowienia</h2>
+      <h2>Zamówienia</h2>
       <div className="panel-card">
-        <p>Podglad najnowszych zamowien.</p>
-        <ul className="simple-list">
-          <li>#1084 - SVIP - oplacone</li>
-          <li>#1083 - VIP - oplacone</li>
-          <li>#1082 - Klucze - oplacone</li>
-        </ul>
+        <p>Ostatnie 100 zamówień z bazy.</p>
+
+        {notice && <div className="admin-notice">{notice}</div>}
+        {error && <div className="admin-error">{error}</div>}
+
+        {orders === null && <div className="admin-loading">Ładowanie zamówień…</div>}
+        {orders !== null && orders.length === 0 && <p>Brak zamówień.</p>}
+        {orders && orders.length > 0 && (
+          <div className="orders-table-wrap">
+            <table className="orders-table">
+              <thead>
+                <tr>
+                  <th>Zamówienie</th>
+                  <th>Data</th>
+                  <th>Nick</th>
+                  <th>Produkty</th>
+                  <th>Wartość</th>
+                  <th>Status</th>
+                  <th>Dostawa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.orderId}>
+                    <td>
+                      <strong>{order.orderId}</strong>
+                      {order.couponCode && <p className="table-sub">kupon {order.couponCode}</p>}
+                    </td>
+                    <td>{formatFullDate(order.createdAt)}</td>
+                    <td>{order.nickname}</td>
+                    <td>
+                      {order.items.map((item, idx) => (
+                        <div key={idx}>
+                          {item.name}
+                          {item.quantity > 1 && ` x${item.quantity}`}
+                        </div>
+                      ))}
+                    </td>
+                    <td>{formatPrice(order.amount)} zł</td>
+                    <td>
+                      <span className={`status-pill ${order.status}`}>{STATUS_LABELS[order.status] || order.status}</span>
+                    </td>
+                    <td>
+                      {order.delivered ? (
+                        <span className="status-pill paid delivered">Dostarczone</span>
+                      ) : order.deliveryError ? (
+                        <span className="status-pill paid failed">Błąd</span>
+                      ) : (
+                        <span className="status-pill muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -206,7 +562,7 @@ function ProduktyContent() {
     <div>
       <h2>Produkty</h2>
       <div className="panel-card">
-        <p>Produkty ze sklepu GlowMoon. Mozesz je edytowac:</p>
+        <p>Produkty ze sklepu GlowMoon. Ceny i klucze /case trzyma serwer (api/_lib/catalog.js) — edycja tutaj jest poglądowa.</p>
         <div className="admin-list">
           {products.map((product) => (
             <div key={product.id} className="admin-item product">

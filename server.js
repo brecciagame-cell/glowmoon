@@ -8,6 +8,11 @@ import orderHandler from './api/order/[orderId].js'
 import send2faHandler from './api/send-2fa-code.js'
 import deliveryPollHandler from './api/delivery/poll.js'
 import deliveryAckHandler from './api/delivery/ack.js'
+import couponValidateHandler from './api/coupons/validate.js'
+import adminCouponsHandler from './api/admin/coupons.js'
+import adminCouponHandler from './api/admin/coupons/[id].js'
+import adminStatsHandler from './api/admin/stats.js'
+import adminOrdersHandler from './api/admin/orders.js'
 
 dotenv.config()
 
@@ -23,6 +28,13 @@ app.get('/api/order/:orderId', orderHandler)
 app.post('/api/send-2fa-code', send2faHandler)
 app.get('/api/delivery/poll', deliveryPollHandler)
 app.post('/api/delivery/ack', deliveryAckHandler)
+app.post('/api/coupons/validate', couponValidateHandler)
+app.get('/api/admin/coupons', adminCouponsHandler)
+app.post('/api/admin/coupons', adminCouponsHandler)
+app.patch('/api/admin/coupons/:id', adminCouponHandler)
+app.delete('/api/admin/coupons/:id', adminCouponHandler)
+app.get('/api/admin/stats', adminStatsHandler)
+app.get('/api/admin/orders', adminOrdersHandler)
 
 app.get('/api/test', (_req, res) => {
   res.json({ message: 'API dziala!' })

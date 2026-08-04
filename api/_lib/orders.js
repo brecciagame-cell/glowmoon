@@ -56,7 +56,8 @@ function mapRow(row) {
     delivered: !!row.delivered,
     deliveredAt: row.delivered_at || undefined,
     deliveryLog: Array.isArray(row.delivery_log) ? row.delivery_log : [],
-    deliveryError: !!row.delivery_error
+    deliveryError: !!row.delivery_error,
+    couponCode: row.coupon_code || undefined
   }
 }
 
@@ -75,7 +76,8 @@ export async function insertOrder(order) {
       delivered: !!order.delivered,
       delivered_at: order.deliveredAt || null,
       delivery_log: order.deliveryLog || [],
-      delivery_error: !!order.deliveryError
+      delivery_error: !!order.deliveryError,
+      coupon_code: order.couponCode || null
     })
     if (error) throw new Error(error.message)
     return

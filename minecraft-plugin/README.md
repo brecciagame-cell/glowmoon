@@ -37,10 +37,13 @@ mvn clean package
 
 Alternatywnie (bez Mavena, sam `javac`):
 ```bash
-javac --release 17 -cp paper-api.jar -d classes src/main/java/pl/glowmoon/delivery/*.java
+javac --release 8 -cp paper-api.jar -d classes src/main/java/pl/glowmoon/delivery/*.java
 cp -r src/main/resources/* classes/
 jar cf GlowMoonDelivery.jar -C classes .
 ```
+
+> **Uwaga:** `--release 8` kompiluje plugin tak, by dzialal na kazdym serwerze
+> (Java 8+). Zbudowany w repo `GlowMoonDelivery.jar` juz tak jest skompilowany.
 
 ## Bezpieczeństwo
 

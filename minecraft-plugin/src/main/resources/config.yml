@@ -17,3 +17,6 @@ timeout-ms: 8000
 
 # Logowac udane komendy w konsoli serwera
 log-successes: true
+
+# Tryb debug - loguje kazdy poll (nawet pusty). Pomocny przy diagnozowaniu.
+debug: false

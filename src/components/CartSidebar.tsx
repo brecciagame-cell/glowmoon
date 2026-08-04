@@ -15,73 +15,41 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const [email, setEmail] = useState('')
   const [discountCode, setDiscountCode] = useState('')
   const [discount, setDiscount] = useState(0)
+  const [appliedCoupon, setAppliedCoupon] = useState('')
+  const [discountLoading, setDiscountLoading] = useState(false)
+  const [discountError, setDiscountError] = useState('')
+  const [discountMessage, setDiscountMessage] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [showAdmin, setShowAdmin] = useState(false)
-  const [adminPass, setAdminPass] = useState('')
-  const [adminAttempts, setAdminAttempts] = useState(0)
-  const [adminLocked, setAdminLocked] = useState(false)
-  const [admin2FA, setAdmin2FA] = useState('')
-  const [adminStep, setAdminStep] = useState(1) // 1 = pass, 2 = 2FA
-  const [captcha, setCaptcha] = useState(generateCaptcha())
-  const [captchaInput, setCaptchaInput] = useState('')
-  const [isAdminLogged, setIsAdminLogged] = useState(false)
 
-  const applyDiscount = () => {
-    if (discountCode.trim().toLowerCase() === 'test') {
-      setDiscount(0.1) // 10% discount
-    } else {
-      setDiscount(0)
-    }
-  }
-
-  const handleAdminLogin = () => {
-    if (adminLocked) return
-    
-    if (captchaInput.toUpperCase() !== captcha) {
-      setCaptcha(generateCaptcha())
-      setCaptchaInput('')
-      alert('Nieprawidłowy kod CAPTCHA')
-      return
-    }
-    
-    // Simulate password check (in real app: hash comparison)
-    if (adminPass.length < 8) {
-      setAdminAttempts(prev => prev + 1)
-      if (adminAttempts >= 2) {
-        setAdminLocked(true)
-        setTimeout(() => { setAdminLocked(false); setAdminAttempts(0) }, 300000) // 5 min
+  const applyDiscount = async () => {
+    const code = discountCode.trim()
+    if (!code) return
+    setDiscountLoading(true)
+    setDiscountError('')
+    setDiscountMessage('')
+    try {
+      const response = await fetch(`${API_BASE}/api/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      })
+      const data = await response.json().catch(() => ({}))
+      if (data.ok) {
+        setDiscount(data.discount)
+        setAppliedCoupon(code.toUpperCase())
+        setDiscountMessage(data.message || `Kod zastosowany -${Math.round(data.discount * 100)}%`)
+      } else {
+        setDiscount(0)
+        setAppliedCoupon('')
+        setDiscountError(data.message || 'Nieprawidłowy kod rabatowy')
       }
-      setCaptcha(generateCaptcha())
-      setCaptchaInput('')
-      alert('Nieprawidłowe hasło')
-      return
+    } catch {
+      setDiscount(0)
+      setAppliedCoupon('')
+      setDiscountError('Błąd połączenia — spróbuj ponownie')
+    } finally {
+      setDiscountLoading(false)
     }
-    
-    // Proceed to 2FA
-    setAdminStep(2)
-  }
-
-  const handle2FAVerify = () => {
-    if (admin2FA === '123456') { // Demo code
-      setIsAdminLogged(true)
-      setAdminStep(1)
-      setAdminPass('')
-      setAdmin2FA('')
-      setCaptcha(generateCaptcha())
-      setCaptchaInput('')
-    } else {
-      alert('Nieprawidłowy kod 2FA')
-      setAdmin2FA('')
-    }
-  }
-
-  const handleAdminLogout = () => {
-    setIsAdminLogged(false)
-    setShowAdmin(false)
-    setAdminStep(1)
-    setAdminPass('')
-    setAdmin2FA('')
-    setCaptchaInput('')
   }
 
 const handleCheckout = async (e: React.FormEvent) => {
@@ -97,7 +65,7 @@ const handleCheckout = async (e: React.FormEvent) => {
         body: JSON.stringify({
           nickname: nickname.trim(),
           email: email.trim(),
-          discount,
+          couponCode: appliedCoupon,
           currency: 'PLN',
           items: cart.map(({ id, name, price, quantity, category, key }) => ({
             id, name, price, quantity, category, key
@@ -205,9 +173,9 @@ const handleCheckout = async (e: React.FormEvent) => {
                     Zastosuj
                   </button>
                 </div>
-                {discount > 0 && (
-                  <span className="discount-applied">Kod „test" zastosowany -10%</span>
-                )}
+                {discountLoading && <span className="discount-status loading">Sprawdzanie kodu…</span>}
+                {discountError && <span className="discount-status error">{discountError}</span>}
+                {discountMessage && <span className="discount-applied">{discountMessage}</span>}
               </div>
 
               <div className="form-group">
@@ -370,184 +338,9 @@ const handleCheckout = async (e: React.FormEvent) => {
               </svg>
               Wyczyść koszyk
             </button>
-            <button className="admin-button" onClick={() => setShowAdmin(true)}>
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Admin
-            </button>
           </div>
         )}
       </div>
-
-      {/* Admin Login Modal */}
-      {showAdmin && (
-        <div className="admin-overlay" onClick={() => !isAdminLogged && setShowAdmin(false)}>
-          <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            {!isAdminLogged ? (
-              <>
-                <div className="admin-header">
-                  <div className="admin-icon">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                  <h3>Panel Administracyjny</h3>
-                  <p className="admin-subtitle">Dostęp chroniony · Poziom: Maksymalny</p>
-                  
-                  {adminLocked && (
-                    <div className="security-alert locked">
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      <span>Konto zablokowane na 5 minut</span>
-                    </div>
-                  )}
-                </div>
-
-                <form className="admin-form" onSubmit={(e) => { e.preventDefault(); handleAdminLogin(); }}>
-                  {adminStep === 1 ? (
-                    <>
-                      <div className="security-badges">
-                        <span className="badge">256-bit AES</span>
-                        <span className="badge">2FA Required</span>
-                        <span className="badge">IP Logging</span>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Hasło administratora</label>
-                        <input 
-                          type="password" 
-                          value={adminPass}
-                          onChange={(e) => setAdminPass(e.target.value)}
-                          placeholder="••••••••••••"
-                          disabled={adminLocked}
-                          className="admin-input"
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>CAPTCHA - Przepisz kod: <strong className="captcha-code">{captcha}</strong></label>
-                        <input 
-                          type="text" 
-                          value={captchaInput}
-                          onChange={(e) => setCaptchaInput(e.target.value)}
-                          placeholder="Wpisz kod z obrazka"
-                          disabled={adminLocked}
-                          className="admin-input"
-                        />
-                      </div>
-
-                      <div className="security-info">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Pozostałe próby: {3 - adminAttempts}</span>
-                      </div>
-
-                      <button 
-                        type="submit" 
-                        className="admin-login-btn"
-                        disabled={adminLocked || !adminPass || !captchaInput}
-                      >
-                        {adminLocked ? 'Zablokowane' : 'Kontynuuj weryfikację 2FA'}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="security-badges">
-                        <span className="badge success">Hasło OK</span>
-                        <span className="badge">Kod 2FA</span>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Kod weryfikacji dwuetapowej (2FA)</label>
-                        <p className="hint">Wprowadź 6-cyfrowy kod z aplikacji autentykatora</p>
-                        <input 
-                          type="text" 
-                          value={admin2FA}
-                          onChange={(e) => setAdmin2FA(e.target.value.replace(/\D/g, '').slice(0,6))}
-                          placeholder="000000"
-                          maxLength={6}
-                          className="admin-input code-input"
-                        />
-                      </div>
-
-                      <button 
-                        type="button" 
-                        className="admin-login-btn"
-                        onClick={handle2FAVerify}
-                        disabled={admin2FA.length !== 6}
-                      >
-                        Zaloguj do panelu
-                      </button>
-                      
-                      <button 
-                        type="button" 
-                        className="admin-back-btn"
-                        onClick={() => setAdminStep(1)}
-                      >
-                        Wróć do hasła
-                      </button>
-                    </>
-                  )}
-                </form>
-              </>
-            ) : (
-              <div className="admin-dashboard">
-                <div className="admin-header">
-                  <div className="admin-icon success">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <h3>Zalogowano jako Administrator</h3>
-                  <p className="admin-subtitle">Dostęp przyznany · Sesja monitorowana</p>
-                </div>
-                
-                <div className="admin-menu">
-                  <button className="admin-menu-item">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    Zarządzanie użytkownikami
-                  </button>
-                  <button className="admin-menu-item">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                    </svg>
-                    Zamówienia i płatności
-                  </button>
-                  <button className="admin-menu-item">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    Konfiguracja produktów
-                  </button>
-                  <button className="admin-menu-item">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Statystyki i raporty
-                  </button>
-                  <button className="admin-menu-item danger" onClick={handleAdminLogout}>
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Wyloguj się
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <button className="admin-close" onClick={() => setShowAdmin(false)}>✕</button>
-          </div>
-        </div>
-      )}
     </>
   )
-}
-
-function generateCaptcha() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
 }

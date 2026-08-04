@@ -855,6 +855,19 @@
   border-color: rgba(99, 102, 241, 0.4);
 }
 
+.discount-status {
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.discount-status.loading {
+  color: #88889a;
+}
+
+.discount-status.error {
+  color: #f87171;
+}
+
 .discount-applied {
   font-size: 0.75rem;
   color: #22c55e;

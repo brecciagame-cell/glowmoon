@@ -24,6 +24,7 @@ export default function Home() {
         
         <div className="container">
           <div className="hero-content">
+            <img src="/logo.png" alt="GlowMoon" className="hero-logo" />
             <h1 className="hero-title">
               <span className="title-line">GlowMoon.pl</span>
               <span className="title-gradient">Sklep</span>
