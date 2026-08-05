@@ -68,7 +68,7 @@ export default function Home() {
               <div className="card-content">
                 <div className="card-header">
                   <span className="card-badge">Ranga</span>
-                  <span className="card-price">15,99 zł</span>
+                  <span className="card-price">1,99 zł</span>
                 </div>
                 <h3>VIP</h3>
                 <ul className="card-perks">

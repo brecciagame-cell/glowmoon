@@ -547,7 +547,7 @@ function ZamowieniaContent() {
 
 function ProduktyContent() {
   const [products, setProducts] = useState([
-    { id: 'vip', name: 'VIP', price: '15,99', active: true, desc: 'Prefix [VIP], /kit vip, 5 domow' },
+    { id: 'vip', name: 'VIP', price: '1,99', active: true, desc: 'Prefix [VIP], /kit vip, 5 domow' },
     { id: 'svip', name: 'SVIP', price: '25,99', active: true, desc: 'Wszystko z VIP + /fly + 10 domow' },
     { id: 'keys', name: 'Klucze do skrzynek', price: 'od 1,99', active: true, desc: 'Rzadki, epicki, legendarny, survivalowy' },
     { id: 'support', name: 'Wsparcie serwera', price: 'od 0,99', active: true, desc: 'Dowolna kwota wsparcia serwera' }
