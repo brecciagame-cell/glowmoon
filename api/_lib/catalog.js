@@ -7,7 +7,7 @@ export const CATALOG = [
   { name: 'Klucz Legendarny', price: 5.99, key: 'Legendarna' },
   { name: 'Klucz Survivalowy', price: 10.99, key: 'Survival' },
   // Rangi LuckPerms - komenda dostawy: lp user <nick> parent addtemp <rank> 30d
-  { name: 'Ranga VIP', price: 1.99, rank: 'vip' },
+  { name: 'Ranga VIP', price: 15.99, rank: 'vip' },
   { name: 'Ranga SVIP', price: 25.99, rank: 'svip' }
 ]
 

@@ -59,7 +59,7 @@ const products: Product[] = [
   {
     id: 'rank-vip',
     name: 'Ranga VIP',
-    price: 1.99,
+    price: 15.99,
     description: 'Prefix, kit, dodatkowe domy',
     image: '/vip.jpg',
     category: 'ranks',

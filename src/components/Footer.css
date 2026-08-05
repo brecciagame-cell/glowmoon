@@ -57,6 +57,68 @@
   color: #ddddee;
 }
 
+/* Social icons */
+.footer-socials {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.75rem;
+}
+
+.social-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #777788;
+  transition: all 0.25s ease;
+}
+
+.social-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.social-icon:hover {
+  transform: translateY(-3px) scale(1.05);
+  border-color: transparent;
+}
+
+.social-icon.tiktok:hover {
+  background: #010101;
+  color: #25f4ee;
+  box-shadow: 0 8px 20px rgba(37, 244, 238, 0.3);
+}
+
+.social-icon.youtube:hover {
+  background: #ff0000;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(255, 0, 0, 0.35);
+}
+
+.social-icon.facebook:hover {
+  background: #1877f2;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(24, 119, 242, 0.35);
+}
+
+.social-icon.instagram:hover {
+  background: radial-gradient(circle at 30% 110%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(214, 36, 159, 0.35);
+}
+
+.social-icon.discord:hover {
+  background: #5865f2;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(88, 101, 242, 0.4);
+}
+
 /* Company data */
 .footer-company {
   text-align: center;
