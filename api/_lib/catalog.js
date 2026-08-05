@@ -6,8 +6,9 @@ export const CATALOG = [
   { name: 'Klucz Epicki', price: 3.99, key: 'Epicka' },
   { name: 'Klucz Legendarny', price: 5.99, key: 'Legendarna' },
   { name: 'Klucz Survivalowy', price: 10.99, key: 'Survival' },
-  { name: 'Ranga VIP', price: 15.99 },
-  { name: 'Ranga SVIP', price: 25.99 }
+  // Rangi LuckPerms - komenda dostawy: lp user <nick> parent addtemp <rank> 30d
+  { name: 'Ranga VIP', price: 15.99, rank: 'vip' },
+  { name: 'Ranga SVIP', price: 25.99, rank: 'svip' }
 ]
 
 // Wsparcie serwera = darowizna o dowolnej kwocie (bez klucza /case)
@@ -22,6 +23,7 @@ export function validateCartItem(item) {
   const name = typeof item?.name === 'string' ? item.name.trim() : ''
   const quantity = Number(item?.quantity)
   const key = typeof item?.key === 'string' && item.key.trim() ? item.key.trim() : undefined
+  const rank = typeof item?.rank === 'string' && item.rank.trim() ? item.rank.trim().toLowerCase() : undefined
 
   if (!name) return { ok: false, error: 'Brak nazwy produktu' }
   if (!Number.isInteger(quantity) || quantity <= 0) return { ok: false, error: 'Nieprawidlowa ilosc' }
@@ -45,7 +47,12 @@ export function validateCartItem(item) {
     return { ok: false, error: `Nieprawidlowy klucz dla produktu: ${name}` }
   }
 
-  return { ok: true, name: product.name, price: product.price, quantity, key: product.key }
+  // Ranga musi byc dokladnie taka jak w katalogu (nie mozna kupic vip zamiast svip)
+  if (rank !== (product.rank || undefined)) {
+    return { ok: false, error: `Nieprawidlowa ranga dla produktu: ${name}` }
+  }
+
+  return { ok: true, name: product.name, price: product.price, quantity, key: product.key, rank: product.rank }
 }
 
 /**

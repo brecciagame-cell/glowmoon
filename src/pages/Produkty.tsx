@@ -14,6 +14,8 @@ interface Product {
   category: 'keys' | 'ranks' | 'support'
   /** Nazwa klucza w pluginie /case (dostawa przez RCON). Bez tego produkt nie jest nadawany. */
   key?: string
+  /** Ranga LuckPerms (vip/svip) - dostawa przez lp user <nick> parent addtemp. */
+  rank?: string
 }
 
 const products: Product[] = [
@@ -60,7 +62,8 @@ const products: Product[] = [
     price: 15.99,
     description: 'Prefix, kit, dodatkowe domy',
     image: '/vip.jpg',
-    category: 'ranks'
+    category: 'ranks',
+    rank: 'vip'
   },
   {
     id: 'rank-svip',
@@ -69,7 +72,8 @@ const products: Product[] = [
     description: 'Wszystko z VIP + /fly',
     badge: 'POPULARNE',
     image: '/svip.jpg',
-    category: 'ranks'
+    category: 'ranks',
+    rank: 'svip'
   },
   {
     id: 'support',
@@ -99,7 +103,7 @@ export default function Produkty() {
   const handleAddToCart = (product: Product) => {
     const qty = quantities[product.id] || 1
     for (let i = 0; i < qty; i++) {
-      addToCart({ name: product.name, price: product.price, category: product.category, key: product.key })
+      addToCart({ name: product.name, price: product.price, category: product.category, key: product.key, rank: product.rank })
     }
   }
 

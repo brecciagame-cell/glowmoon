@@ -51,7 +51,8 @@ export default async function handler(req, res) {
       price: validated.price,
       quantity: validated.quantity,
       category: typeof item?.category === 'string' ? item.category : undefined,
-      key: validated.key
+      key: validated.key,
+      rank: validated.rank
     })
   }
   itemsTotal = Math.round(itemsTotal * 100) / 100

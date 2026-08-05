@@ -6,9 +6,11 @@ Działa nawet wtedy, gdy hosting (np. gamehost.pl) **blokuje port RCON z interne
 ## Jak to działa
 
 1. Po opłaceniu zamówienia backend (Vercel) odkłada komendy do kolejki
-   (tabela `delivery_queue` w Supabase), np. `case give <nick> <klucz> <ilość>`.
+   (tabela `delivery_queue` w Supabase), np.:
+   - klucze: `case give <nick> <klucz> <ilość>`
+   - rangi: `lp user <nick> parent addtemp <ranga> 30d` (VIP/SVIP, 30 dni za sztukę)
 2. Plugin **co 5 sekund odpytuje** `GET https://<adres>/api/delivery/poll?token=...`.
-3. Jeśli są komendy — wykonuje je z **konsoli serwera** (`case give ...`).
+3. Jeśli są komendy — wykonuje je z **konsoli serwera** (`case give ...`, `lp user ...`).
 4. Potwierdza wykonanie przez `POST /api/delivery/ack` → strona sukcesu
    pokazuje „Przedmioty zostały dostarczone”.
 
@@ -58,3 +60,6 @@ jar cf GlowMoonDelivery.jar -C classes .
 - **„401"** — token w `config.yml` nie zgadza się z `DELIVERY_TOKEN` w Vercel.
 - **Komenda nie wykonuje się** — sprawdź, czy plugin `/case` rozpoznaje nazwę
   klucza (wielkość liter!). Klucze w sklepie: `Rzadka`, `Epicka`, `Legendarna`, `Survival`.
+- **Ranga nie nadana** — na serwerze musi być zainstalowany **LuckPerms**, a grupy
+  muszą nazywać się dokładnie `vip` i `svip` (małe litery). Komenda wysyłana do serwera:
+  `lp user <nick> parent addtemp <ranga> 30d` (liczba dni = ilość × 30).

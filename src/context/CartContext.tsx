@@ -8,6 +8,8 @@ interface CartItem {
   category?: string
   /** Nazwa klucza w pluginie /case - dostawa przez RCON */
   key?: string
+  /** Ranga LuckPerms (vip/svip) - dostawa przez lp user <nick> parent addtemp */
+  rank?: string
 }
 
 interface CartContextType {

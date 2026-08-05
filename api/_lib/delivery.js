@@ -42,8 +42,9 @@ export function getDeliveryToken() {
 
 /**
  * Buduje listę komend dostawy dla zamówienia:
- *   case give <player> <key> <qty>
- * Item bez pola `key` jest pomijany (np. darowizny/wsparcie serwera).
+ *   case give <player> <key> <qty>                    - klucze /case
+ *   lp user <player> parent addtemp <rank> 30d        - rangi LuckPerms (VIP/SVIP)
+ * Item bez pola `key` ani `rank` jest pomijany (np. darowizny/wsparcie serwera).
  * @returns {{ command: string, itemName: string }[]}
  */
 export function buildCommands(order) {
@@ -52,9 +53,20 @@ export function buildCommands(order) {
 
   const commands = []
   for (const item of order?.items || []) {
+    const qty = Math.max(1, Number(item?.quantity) || 1)
+
+    // Ranga LuckPerms: addtemp na 30 dni (x ilosc = 30d, 60d, 90d...)
+    const rank = (item?.rank || '').trim()
+    if (rank) {
+      commands.push({
+        command: `lp user ${nick} parent addtemp ${rank} ${30 * qty}d`,
+        itemName: item?.name || rank
+      })
+      continue
+    }
+
     const key = (item?.key || '').trim()
     if (!key) continue
-    const qty = Math.max(1, Number(item?.quantity) || 1)
     commands.push({
       command: `case give ${nick} ${key} ${qty}`,
       itemName: item?.name || key
@@ -130,8 +142,8 @@ export async function deliverOrder(order) {
 
   const commands = buildCommands(order)
   if (commands.length === 0) {
-    console.warn(`[delivery] Zamowienie ${order.orderId} nie ma produktow z kluczem /case - pominieto`)
-    return { attempted: false, ok: true, reason: 'brak produktow /case' }
+    console.warn(`[delivery] Zamowienie ${order.orderId} nie ma produktow z kluczem /case ani ranga - pominieto`)
+    return { attempted: false, ok: true, reason: 'brak produktow do dostawy' }
   }
 
   const db = getDb()
